@@ -38,7 +38,7 @@ struct TodayView: View {
                         }
                         Spacer()
                         VStack(alignment: .trailing) {
-                            Text("有效率").font(.caption).foregroundColor(.secondary)
+                            Text("验梦率").font(.caption).foregroundColor(.secondary)
                             Text(rateText(stats.successRate)).font(.title.bold())
                         }
                     }
@@ -69,7 +69,24 @@ struct TodayView: View {
                         }
                     }
                 } footer: {
-                    Text("测试通知约 1 秒后到达；点“完成了”会记入今天的统计。")
+                    Text("测试通知约 1 秒后到达；在通知上点「记录」可以写一条验梦记录，点「跳过」就不算完成。")
+                }
+
+                Section("今天的记录") {
+                    let todays = model.events(on: model.todayKey)
+                    if todays.isEmpty {
+                        Text("今天还没有记录")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(todays) { event in
+                            Button {
+                                model.openRecord(for: event)
+                            } label: {
+                                recordRow(event)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
             }
             .navigationTitle("此刻真实吗")
@@ -100,6 +117,50 @@ struct TodayView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func recordRow(_ event: ReminderEvent) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(Self.timeFormatter.string(from: event.scheduledAt))
+                    .font(.subheadline)
+                    .bold()
+                statusBadge(event.status)
+                Spacer()
+                Image(systemName: "square.and.pencil")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            if let note = event.note, !note.isEmpty {
+                Text(note)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func statusBadge(_ status: ReminderStatus) -> some View {
+        let text: String
+        let color: Color
+        switch status {
+        case .success:
+            text = "完成"
+            color = .green
+        case .ignored:
+            text = "跳过"
+            color = .orange
+        case .pending:
+            text = "待处理"
+            color = .gray
+        }
+        return Text(text)
+            .font(.caption2)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.15))
+            .foregroundColor(color)
+            .cornerRadius(6)
     }
 
     private func rateText(_ rate: Double) -> String {

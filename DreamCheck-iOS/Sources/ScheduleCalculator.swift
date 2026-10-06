@@ -33,6 +33,10 @@ struct ScheduleCalculator {
 
     func next(now: Date, settings: ReminderSettings) -> NextSchedule {
         guard settings.enabled else { return .disabled }
+        let activeSegments = settings.segments.filter { $0.enabled && $0.intervalMinutes > 0 }
+        if settings.useSegments && !activeSegments.isEmpty {
+            return nextInSegments(now: now, segments: activeSegments)
+        }
         switch settings.reminderMode {
         case .continuous:
             return .at(continuous(now: now, settings: settings), alignmentAnchorEpochMillis: nil)
@@ -48,14 +52,21 @@ struct ScheduleCalculator {
         var working = settings
         var reminders: [ScheduledReminder] = []
         var cursor = now
+        var safety = 0
         let horizon = calendar.date(byAdding: .day, value: 14, to: now) ?? now.addingTimeInterval(14 * 86_400)
 
         loop: while reminders.count < limit {
+            safety += 1
+            if safety > 5_000 { break loop }
             switch next(now: cursor, settings: working) {
             case .disabled:
                 break loop
             case .at(let date, let anchor):
                 if date > horizon { break loop }
+                if let last = reminders.last, date.timeIntervalSince(last.date) < 60 {
+                    cursor = date.addingTimeInterval(60)
+                    continue
+                }
                 let index = MessageSelector.select(lastMessageIndex: working.lastMessageIndex)
                 reminders.append(ScheduledReminder(id: "rem-\(UUID().uuidString)", date: date, messageIndex: index))
                 working.lastMessageIndex = index
@@ -66,6 +77,39 @@ struct ScheduleCalculator {
             }
         }
         return ScheduleBatch(reminders: reminders, settings: working)
+    }
+
+    private func nextInSegments(now: Date, segments: [ScheduleSegment]) -> NextSchedule {
+        var best: Date?
+        for dayOffset in -1...2 {
+            guard let day = calendar.date(byAdding: .day, value: dayOffset, to: startOfDay(now)) else { continue }
+            for segment in segments {
+                let start = date(on: day, minutes: segment.startMinutes)
+                let endDay = segment.crossesMidnight
+                    ? (calendar.date(byAdding: .day, value: 1, to: day) ?? day)
+                    : day
+                let end = date(on: endDay, minutes: segment.endExclusiveMinutes)
+                guard end > start else { continue }
+
+                let interval = TimeInterval(segment.intervalMinutes * 60)
+                let candidate: Date
+                if now <= start {
+                    candidate = start
+                } else {
+                    let elapsed = now.timeIntervalSince(start)
+                    let steps = floor(elapsed / interval) + 1
+                    candidate = start.addingTimeInterval(steps * interval)
+                }
+                guard candidate >= start, candidate < end else { continue }
+                if best == nil || candidate < best! {
+                    best = candidate
+                }
+            }
+        }
+        if let best = best {
+            return .at(best, alignmentAnchorEpochMillis: nil)
+        }
+        return .disabled
     }
 
     private func continuous(now: Date, settings: ReminderSettings) -> Date {

@@ -8,14 +8,15 @@ final class AppModel: ObservableObject {
     @Published var events: [ReminderEvent]
     @Published var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @Published var nextScheduledAt: Date?
+    @Published var recordTarget: RecordTarget?
 
-    let notificationManager = NotificationManager()
+    let notificationManager = NotificationManager.shared
 
     private let calculator = ScheduleCalculator()
     private let defaults = UserDefaults.standard
 
     private enum Keys {
-        static let settings = "dreamcheck.settings.v1"
+        static let settings = "dreamcheck.settings.v2"
         static let events = "dreamcheck.events.v1"
     }
 
@@ -63,6 +64,19 @@ final class AppModel: ObservableObject {
             success: subset.filter { $0.status == .success }.count,
             ignored: subset.filter { $0.status == .ignored }.count
         )
+    }
+
+    func events(on key: String) -> [ReminderEvent] {
+        events.filter { $0.localDateKey == key }.sorted { $0.scheduledAt < $1.scheduledAt }
+    }
+
+    func event(id: String) -> ReminderEvent? {
+        events.first { $0.id == id }
+    }
+
+    func message(for event: ReminderEvent) -> ReminderMessage? {
+        guard event.messageIndex >= 0, event.messageIndex < ReminderMessages.all.count else { return nil }
+        return ReminderMessages.all[event.messageIndex]
     }
 
     // MARK: - Authorization
@@ -139,25 +153,113 @@ final class AppModel: ObservableObject {
     // MARK: - Resolution
 
     private func handle(action: String, notificationID: String) {
-        if notificationID.hasPrefix("test-") {
-            let now = Date()
-            mutateEvents { list in
-                list.append(ReminderEvent(
-                    id: notificationID,
-                    scheduledAt: now,
-                    localDateKey: ReminderEvent.localDateKey(from: now),
-                    messageIndex: 0,
-                    status: action == NotificationManager.actionDone ? .success : .ignored,
-                    resolution: .button
-                ))
-            }
-            return
+        ensureEventExists(id: notificationID)
+        switch action {
+        case NotificationManager.actionDone:
+            resolve(notificationID, status: .success, resolution: .button)
+        case NotificationManager.actionRecord:
+            recordTarget = RecordTarget(id: notificationID)
+        case NotificationManager.actionSkip:
+            resolve(notificationID, status: .ignored, resolution: .skipped)
+        default:
+            break
         }
+    }
 
+    private func resolve(_ id: String, status: ReminderStatus, resolution: Resolution) {
         mutateEvents { list in
-            guard let index = list.firstIndex(where: { $0.id == notificationID }) else { return }
-            list[index].status = action == NotificationManager.actionDone ? .success : .ignored
-            list[index].resolution = action == NotificationManager.actionPause ? .paused : .button
+            guard let index = list.firstIndex(where: { $0.id == id }) else { return }
+            list[index].status = status
+            list[index].resolution = resolution
+        }
+    }
+
+    private func ensureEventExists(id: String) {
+        guard !events.contains(where: { $0.id == id }) else { return }
+        let now = Date()
+        mutateEvents { list in
+            list.append(ReminderEvent(
+                id: id,
+                scheduledAt: now,
+                localDateKey: ReminderEvent.localDateKey(from: now),
+                messageIndex: 0,
+                status: .pending,
+                resolution: nil
+            ))
+        }
+    }
+
+    // MARK: - Records
+
+    func openRecord(for event: ReminderEvent) {
+        recordTarget = RecordTarget(id: event.id)
+    }
+
+    /// 记录一次验梦并标记为完成。
+    func saveRecord(eventID: String, note: String) {
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        mutateEvents { list in
+            guard let index = list.firstIndex(where: { $0.id == eventID }) else { return }
+            list[index].note = trimmed.isEmpty ? nil : trimmed
+            list[index].status = .success
+            list[index].resolution = .button
+        }
+    }
+
+    /// 只保存备注，不改变完成状态。
+    func updateNote(eventID: String, note: String) {
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        mutateEvents { list in
+            guard let index = list.firstIndex(where: { $0.id == eventID }) else { return }
+            list[index].note = trimmed.isEmpty ? nil : trimmed
+        }
+    }
+
+    /// 跳过这一次提醒。
+    func skipRecord(eventID: String) {
+        mutateEvents { list in
+            guard let index = list.firstIndex(where: { $0.id == eventID }) else { return }
+            list[index].status = .ignored
+            list[index].resolution = .skipped
+        }
+    }
+
+    // MARK: - Segments
+
+    func setUseSegments(_ on: Bool) {
+        updateSettings { settings in
+            settings.useSegments = on
+            if on && settings.segments.isEmpty {
+                settings.segments = [
+                    ScheduleSegment(startMinutes: 9 * 60, endExclusiveMinutes: 12 * 60, intervalMinutes: 15),
+                    ScheduleSegment(startMinutes: 12 * 60, endExclusiveMinutes: 18 * 60, intervalMinutes: 30),
+                    ScheduleSegment(startMinutes: 18 * 60, endExclusiveMinutes: 22 * 60, intervalMinutes: 20),
+                ]
+            }
+        }
+    }
+
+    func addSegment() {
+        updateSettings { settings in
+            settings.segments.append(ScheduleSegment(
+                startMinutes: settings.window.startMinutes,
+                endExclusiveMinutes: settings.window.endExclusiveMinutes,
+                intervalMinutes: settings.intervalMinutes
+            ))
+        }
+    }
+
+    func deleteSegments(at offsets: IndexSet) {
+        updateSettings { settings in
+            let removing = offsets.compactMap { $0 < settings.segments.count ? settings.segments[$0].id : nil }
+            settings.segments.removeAll { removing.contains($0.id) }
+        }
+    }
+
+    func updateSegment(id: String, _ mutate: (inout ScheduleSegment) -> Void) {
+        updateSettings { settings in
+            guard let index = settings.segments.firstIndex(where: { $0.id == id }) else { return }
+            mutate(&settings.segments[index])
         }
     }
 

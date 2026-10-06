@@ -2,12 +2,22 @@ import Foundation
 import UserNotifications
 
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationManager()
+
     static let categoryIdentifier = "REMINDER"
     static let actionDone = "DONE"
-    static let actionIgnore = "IGNORE"
-    static let actionPause = "PAUSE"
+    static let actionRecord = "RECORD"
+    static let actionSkip = "SKIP"
 
-    var onAction: ((String, String) -> Void)?
+    private var pendingAction: (String, String)?
+
+    var onAction: ((String, String) -> Void)? {
+        didSet {
+            guard let pending = pendingAction, let handler = onAction else { return }
+            pendingAction = nil
+            handler(pending.0, pending.1)
+        }
+    }
 
     override init() {
         super.init()
@@ -17,11 +27,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     private func registerCategory() {
         let done = UNNotificationAction(identifier: Self.actionDone, title: "完成了", options: [])
-        let ignore = UNNotificationAction(identifier: Self.actionIgnore, title: "忽略", options: [])
-        let pause = UNNotificationAction(identifier: Self.actionPause, title: "暂停", options: [.foreground])
+        let record = UNNotificationAction(identifier: Self.actionRecord, title: "记录", options: [.foreground])
+        let skip = UNNotificationAction(identifier: Self.actionSkip, title: "跳过", options: [])
         let category = UNNotificationCategory(
             identifier: Self.categoryIdentifier,
-            actions: [done, ignore, pause],
+            actions: [done, record, skip],
             intentIdentifiers: [],
             options: []
         )
@@ -75,7 +85,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         let identifier = response.notification.request.identifier
         DispatchQueue.main.async { [weak self] in
-            self?.onAction?(response.actionIdentifier, identifier)
+            guard let self = self else { return }
+            if let handler = self.onAction {
+                handler(response.actionIdentifier, identifier)
+            } else {
+                self.pendingAction = (response.actionIdentifier, identifier)
+            }
         }
         completionHandler()
     }

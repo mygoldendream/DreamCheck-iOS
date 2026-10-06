@@ -62,6 +62,32 @@ struct TimeWindow: Codable, Equatable {
     }
 }
 
+struct ScheduleSegment: Codable, Identifiable, Equatable {
+    var id: String
+    var startMinutes: Int
+    var endExclusiveMinutes: Int
+    var intervalMinutes: Int
+    var enabled: Bool
+
+    var crossesMidnight: Bool { startMinutes > endExclusiveMinutes }
+
+    init(id: String = UUID().uuidString,
+         startMinutes: Int,
+         endExclusiveMinutes: Int,
+         intervalMinutes: Int,
+         enabled: Bool = true) {
+        self.id = id
+        self.startMinutes = startMinutes
+        self.endExclusiveMinutes = endExclusiveMinutes
+        self.intervalMinutes = intervalMinutes
+        self.enabled = enabled
+    }
+}
+
+struct RecordTarget: Identifiable, Equatable {
+    let id: String
+}
+
 struct ReminderSettings: Codable, Equatable {
     var enabled: Bool = false
     var window: TimeWindow = TimeWindow(startMinutes: 9 * 60, endExclusiveMinutes: 22 * 60)
@@ -70,6 +96,8 @@ struct ReminderSettings: Codable, Equatable {
     var alignmentAnchorEpochMillis: Int64?
     var lastMessageIndex: Int?
     var vibrationIntensity: VibrationIntensity = .medium
+    var useSegments: Bool = false
+    var segments: [ScheduleSegment] = []
 
     func validated() -> ReminderSettings {
         var copy = self
@@ -88,6 +116,16 @@ struct ReminderSettings: Codable, Equatable {
         if let index = copy.lastMessageIndex, !ReminderMessages.all.indices.contains(index) {
             copy.lastMessageIndex = nil
         }
+        copy.segments = copy.segments.map { segment in
+            var fixed = segment
+            fixed.startMinutes = min(max(fixed.startMinutes, 0), 1439)
+            fixed.endExclusiveMinutes = min(max(fixed.endExclusiveMinutes, 0), 1439)
+            if fixed.startMinutes == fixed.endExclusiveMinutes {
+                fixed.endExclusiveMinutes = (fixed.startMinutes + 1) % 1440
+            }
+            fixed.intervalMinutes = min(max(fixed.intervalMinutes, 1), 120)
+            return fixed
+        }
         return copy
     }
 }
@@ -103,6 +141,7 @@ enum Resolution: String, Codable {
     case swipe
     case timeout
     case paused
+    case skipped
 }
 
 struct ReminderEvent: Codable, Identifiable, Equatable {
@@ -112,6 +151,7 @@ struct ReminderEvent: Codable, Identifiable, Equatable {
     var messageIndex: Int
     var status: ReminderStatus
     var resolution: Resolution?
+    var note: String? = nil
 
     static func localDateKey(from date: Date, calendar: Calendar = .current) -> String {
         let comps = calendar.dateComponents([.year, .month, .day], from: date)
