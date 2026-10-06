@@ -1,0 +1,61 @@
+import Foundation
+
+struct ReminderMessage {
+    let title: String
+    let body: String
+}
+
+enum ReminderMessages {
+    static let all: [ReminderMessage] = [
+        ReminderMessage(title: "刚醒先别急", body: "你刚从床上醒来吗？先捏住鼻子轻轻吸气；仍能呼吸就继续检查环境。"),
+        ReminderMessage(title: "情绪突然爆表", body: "喜悦、愤怒或恐惧来得太猛？轻咬食指，只验软硬，不验疼痛。"),
+        ReminderMessage(title: "好运来得太快", body: "突然中奖、被夸或愿望成真？捏住鼻子轻轻吸气，确认这一刻是否在梦里。"),
+        ReminderMessage(title: "倒霉得不真实", body: "坏事接连得像剧本？轻轻扳动食指，不要硬掰；活动范围反常就提高警觉。"),
+        ReminderMessage(title: "这里是哪儿", body: "停一下：你怎么来到这里的？捏住鼻子轻轻吸气，给现实一次验证。"),
+        ReminderMessage(title: "熟人说怪话", body: "熟人语气、身份或模样反常？捏住鼻子轻轻吸气，再认真看清周围。"),
+        ReminderMessage(title: "东西变样了", body: "钥匙、房门或家具突然变样？轻咬食指，只验软硬，不验疼痛。"),
+        ReminderMessage(title: "时间在跳动", body: "手机时间前后矛盾？捏住鼻子轻轻吸气；若仍能呼吸，再核对文字。"),
+        ReminderMessage(title: "又回到这里", body: "这个街角或房间是否反复出现？轻轻扳动食指，不要硬掰，检查活动范围。"),
+        ReminderMessage(title: "中间少了一段", body: "上一刻到这一刻怎么接上的？捏住鼻子轻轻吸气，验证记忆的断口。"),
+        ReminderMessage(title: "电梯开错层", body: "电梯门开在不认识的楼层？捏住鼻子轻轻吸气，再看楼层数字是否稳定。"),
+        ReminderMessage(title: "怎么又上课了", body: "明明毕业却坐回旧教室？轻咬食指，只验软硬，不验疼痛。"),
+        ReminderMessage(title: "车窗外不对劲", body: "车窗外道路循环、车辆仿佛失控？捏住鼻子轻轻吸气，确认这段旅程。"),
+        ReminderMessage(title: "天气瞬间变脸", body: "晴天瞬间暴雨，白昼突然变夜？轻轻扳动食指，不要硬掰，检查现实边界。"),
+        ReminderMessage(title: "手机开始胡来", body: "手机图标乱跳、消息内容改变？捏住鼻子轻轻吸气，再读一次屏幕。"),
+        ReminderMessage(title: "镜中的你是谁", body: "镜中发型、衣服或五官不一致？捏住鼻子轻轻吸气，再观察一个细节。"),
+        ReminderMessage(title: "声音来自哪里", body: "有人叫你却找不到来源？轻咬食指，只验软硬，不验疼痛。"),
+        ReminderMessage(title: "身体忽然变轻", body: "走路像漂浮，身体忽然没有重量？捏住鼻子轻轻吸气，认真确认。"),
+        ReminderMessage(title: "任务突然跳场", body: "刚做一件事，场景却突然换了？轻轻扳动食指，不要硬掰，检查连续性。"),
+        ReminderMessage(title: "房间偷偷变了", body: "门窗、墙壁或家具悄悄换位？捏住鼻子轻轻吸气，再环顾四周。"),
+        ReminderMessage(title: "停下，验梦", body: "先别划走：捏住鼻子轻轻吸气；若仍能呼吸，就继续检查环境。"),
+        ReminderMessage(title: "轻咬看软硬", body: "轻咬食指，只验软硬，不验疼痛；感觉异常就先当作疑梦信号。"),
+        ReminderMessage(title: "鼻子知道答案", body: "捏住鼻子轻轻吸气。鼻子被捏住仍能呼吸时，别急着判定现实。"),
+        ReminderMessage(title: "手指别硬掰", body: "轻轻扳动食指，不要硬掰；只观察活动范围有没有不可能的变化。"),
+        ReminderMessage(title: "三秒认真验梦", body: "用三秒认真怀疑，再捏住鼻子轻轻吸气；别把动作做成打卡。"),
+        ReminderMessage(title: "先疑梦再继续", body: "问一句“是不是梦”，随即捏住鼻子轻轻吸气，让怀疑落到行动。"),
+        ReminderMessage(title: "不要拿疼痛验", body: "轻咬食指，只验软硬，不验疼痛；痛不痛不能帮你可靠判断。"),
+        ReminderMessage(title: "呼吸能拆穿梦", body: "捏住鼻子轻轻吸气；若呼吸照常，先怀疑梦境，再检查四周。"),
+        ReminderMessage(title: "轻扳检查范围", body: "轻轻扳动食指，不要硬掰；活动范围反常时，立刻提高警觉。"),
+        ReminderMessage(title: "现在确认一次", body: "无论周围多正常，都捏住鼻子轻轻吸气，给这一刻一次验证。"),
+        ReminderMessage(title: "别让习惯划走", body: "别条件反射地关掉弹窗；捏住鼻子轻轻吸气，认真等到结果。"),
+        ReminderMessage(title: "软硬才是重点", body: "轻咬食指，只验软硬，不验疼痛；像橡皮泥般异常就提高警觉。"),
+        ReminderMessage(title: "捏鼻再下结论", body: "觉得自己肯定醒着？捏住鼻子轻轻吸气，再决定是不是现实。"),
+        ReminderMessage(title: "轻轻检查手指", body: "轻轻扳动食指，不要硬掰；只检查它是否超出平常活动范围。"),
+        ReminderMessage(title: "这一刻真实吗", body: "先回答你怎么来到这里，再捏住鼻子轻轻吸气，确认此刻。"),
+        ReminderMessage(title: "追查上一分钟", body: "倒推上一分钟发生了什么；若接不上，捏住鼻子轻轻吸气继续取证。"),
+        ReminderMessage(title: "检查身体证据", body: "看看双手是否自然，再轻咬食指，只验软硬，不验疼痛，别凭感觉结案。"),
+        ReminderMessage(title: "读两遍再确认", body: "把同一行文字读两遍；若内容改变，捏住鼻子轻轻吸气复核。"),
+        ReminderMessage(title: "手指活动正常吗", body: "观察食指数目和形状，再轻轻扳动食指，不要硬掰，检查活动范围。"),
+        ReminderMessage(title: "这段记忆连贯吗", body: "回想你从哪里来、来做什么；记忆断裂时，捏住鼻子轻轻吸气。"),
+        ReminderMessage(title: "时间真的稳定吗", body: "看一次时间，移开再看；数字若跳变，捏住鼻子轻轻吸气确认。"),
+        ReminderMessage(title: "手感有没有异常", body: "先摸桌面或衣服，再轻咬食指，只验软硬，不验疼痛，比较触感。"),
+        ReminderMessage(title: "场景经得起复查吗", body: "转身观察一个物件，再回头复查；若它变了，捏住鼻子轻轻吸气。"),
+        ReminderMessage(title: "物理规则还在吗", body: "问自己重力、光线和空间是否合理；轻轻扳动食指，不要硬掰。"),
+        ReminderMessage(title: "谁把你带到这里", body: "说出你到这里前的三个步骤；说不清时，捏住鼻子轻轻吸气。"),
+        ReminderMessage(title: "门外还是原地方吗", body: "看门外一个细节，关门再打开；若场景重置，捏住鼻子轻轻吸气。"),
+        ReminderMessage(title: "食指像平常吗", body: "观察食指形状和纹路，再轻咬食指，只验软硬，不验疼痛。"),
+        ReminderMessage(title: "手机内容会变吗", body: "读一条消息，返回后重新打开；内容变化时，捏住鼻子轻轻吸气。"),
+        ReminderMessage(title: "手指边界清楚吗", body: "先看手指是否多了一节，再轻轻扳动食指，不要硬掰，检查范围。"),
+        ReminderMessage(title: "做最后一次复核", body: "即使前面都正常，也捏住鼻子轻轻吸气，给结论最后一次复核。"),
+    ]
+}
